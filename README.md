@@ -37,8 +37,18 @@ bin/npm-supply-scan latest ./monorepo --json > report.json
 - **npm package (planned)** – publishes the compiled binary with a thin wrapper
 - **Homebrew tap (planned)** – Homebrew formula pinned to GitHub releases
 
+## Configuration
+- Threat profiles live in `src/signatures/profiles.json`. Add or edit entries there to register new packs, update metadata, or change the default profile without touching TypeScript.
+- Scanner defaults (e.g., lockfile globs) are sourced from `src/signatures/config.json`. Adjust these values to fine-tune which paths are inspected during package matching.
+- Runtime JSON data is read once and cached in memory for faster scans; remember to restart the CLI when editing configuration files.
+
+## Release Workflow
+- Run `bun run release:dry-run` to preview version bumps, changelog entries, and artifact steps without modifying the repository.
+- Run `bun run release` for a full release: tests + lint, cross-platform binary builds, npm packing via `bun pm pack`, GitHub Release asset uploads, and Homebrew formula generation.
+- Provide `GITHUB_TOKEN` and `BUN_AUTH_TOKEN`/`NPM_TOKEN` in the environment so the automation can publish to GitHub Releases and npm.
+
 ## Threat Profiles
-Profiles live under `src/signatures/packs/` and are enumerated in `src/signatures/registry.ts`.
+Profiles live under `src/signatures/packs/` and are registered via `src/signatures/profiles.json` (loaded by the runtime registry).
 
 - `latest` (default): Rolling bundle that extends other packs and aggregates high-signal IOCs from the last 12 months. Metadata lives in `packs/latest/threats.json` and its compromised packages list lives in `packs/latest/latest-compromised-packages.json`.
 - `shai-hulud`: Full fast scanner profile for the September 2025 shai hulud attack. Pack manifest and package list live in `packs/shai-hulud/`.

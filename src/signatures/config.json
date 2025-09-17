@@ -1,0 +1,11 @@
+{
+  "defaultLockfileGlobs": [
+    "**/package-lock.json",
+    "**/npm-shrinkwrap.json",
+    "**/pnpm-lock.yaml",
+    "**/pnpm-lock.yml",
+    "**/yarn.lock",
+    "**/bun.lock",
+    "**/bun.lockb"
+  ]
+}

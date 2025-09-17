@@ -7,10 +7,16 @@
     "dev": "bun run src/cli.ts",
     "build": "bun build src/cli.ts --compile --outfile bin/npm-supply-scan",
     "test": "bun test",
-    "lint": "bunx eslint ."
+    "lint": "bunx eslint .",
+    "release": "bun run scripts/release.ts",
+    "release:dry-run": "bun run scripts/release.ts --dry-run"
   },
   "bin": {
     "npm-supply-scan": "bin/npm-supply-scan"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
   },
   "devDependencies": {
     "@types/bun": "^1.2.22",

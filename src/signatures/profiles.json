@@ -1,0 +1,23 @@
+{
+  "profiles": [
+    {
+      "id": "latest",
+      "title": "Latest npm supply-chain threats",
+      "summary": "Aggregated signatures for high-impact npm supply-chain incidents observed over the last 12 months, kept up to date with newly disclosed threats.",
+      "manifestPath": "./packs/latest/pack.json",
+      "default": true,
+      "tags": ["latest", "curated", "default"],
+      "updated": "2025-09-16",
+      "aliases": ["default", "rolling"]
+    },
+    {
+      "id": "shai-hulud",
+      "title": "Shai hulud npm supply-chain attack (JFrog, Sep 2025)",
+      "summary": "Full fast scanner profile focused on the shai hulud malware family, including lockfile indicators and payload hashes.",
+      "manifestPath": "./packs/shai-hulud/pack.json",
+      "tags": ["malware", "jfrog", "2025"],
+      "updated": "2025-09-16",
+      "aliases": ["shai", "shai-hulud-fast"]
+    }
+  ]
+}

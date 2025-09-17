@@ -1,6 +1,7 @@
-import fs from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { getProfile, getDefaultProfile, listProfiles } from "./registry";
+import { readJsonFile } from "../utils/json-cache";
 
 export type Indicator =
   | { type: "string"; value: string }
@@ -118,7 +119,11 @@ export interface LoadSignaturesOptions {
   signatureFile?: string;
 }
 
-const DEFAULT_LOCKFILE_GLOBS = [
+interface SignatureRuntimeConfig {
+  defaultLockfileGlobs?: string[];
+}
+
+const FALLBACK_LOCKFILE_GLOBS = [
   "**/package-lock.json",
   "**/npm-shrinkwrap.json",
   "**/pnpm-lock.yaml",
@@ -127,6 +132,21 @@ const DEFAULT_LOCKFILE_GLOBS = [
   "**/bun.lock",
   "**/bun.lockb",
 ];
+
+const configPath = fileURLToPath(new URL("./config.json", import.meta.url));
+let signatureConfig: SignatureRuntimeConfig = {};
+try {
+  signatureConfig = await readJsonFile<SignatureRuntimeConfig>(configPath);
+} catch (error) {
+  console.warn(`Falling back to built-in lockfile globs; unable to read ${configPath}:`, error);
+}
+
+const DEFAULT_LOCKFILE_GLOBS = (Array.isArray(signatureConfig.defaultLockfileGlobs)
+  ? signatureConfig.defaultLockfileGlobs
+  : FALLBACK_LOCKFILE_GLOBS
+)
+  .map((glob) => glob.trim())
+  .filter((glob) => glob.length > 0);
 
 function dedupeByKey<T>(items: T[], keyFn: (item: T) => string): T[] {
   const map = new Map<string, T>();
@@ -183,8 +203,7 @@ function mergeThreatLists(threats: ThreatDefinition[]): ThreatDefinition[] {
 }
 
 async function readManifest(manifestPath: string): Promise<SignaturePackManifest> {
-  const content = await fs.readFile(manifestPath, "utf8");
-  return JSON.parse(content) as SignaturePackManifest;
+  return await readJsonFile<SignaturePackManifest>(manifestPath);
 }
 
 async function loadCompromisedPackages(
@@ -196,11 +215,8 @@ async function loadCompromisedPackages(
   const manifestDir = path.dirname(manifestPath);
   if (manifest.compromisedPackagesFile) {
     const filePath = path.resolve(manifestDir, manifest.compromisedPackagesFile);
-    const content = await fs.readFile(filePath, "utf8");
+    const parsed = await readJsonFile<{ packages?: CompromisedPackageEntry[] }>(filePath);
     sourceFiles.push(filePath);
-    const parsed = JSON.parse(content) as {
-      packages?: CompromisedPackageEntry[];
-    };
     if (Array.isArray(parsed.packages)) {
       for (const pkg of parsed.packages) {
         if (!pkg || typeof pkg !== "object") continue;
@@ -309,9 +325,8 @@ async function loadThreats(
 
   if (manifest.threatsFile) {
     const filePath = path.resolve(manifestDir, manifest.threatsFile);
-    const content = await fs.readFile(filePath, "utf8");
+    const parsed = await readJsonFile<ThreatFilePayload>(filePath);
     sourceFiles.push(filePath);
-    const parsed = JSON.parse(content) as ThreatFilePayload;
     if (Array.isArray(parsed.threats)) {
       parsed.threats.forEach(pushThreat);
     }
