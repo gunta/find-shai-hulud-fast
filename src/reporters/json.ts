@@ -8,6 +8,7 @@ export function emitJson(summary: ScanSummary) {
     durationMs: summary.durationMs,
     detections: summary.detections,
     errors: summary.errors,
+    signatureSummary: summary.signatureSummary,
     generatedAt: new Date().toISOString(),
   };
   writeStdout(`${JSON.stringify(payload, null, 2)}\n`);

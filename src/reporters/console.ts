@@ -39,13 +39,25 @@ export function printSummary(summary: ScanSummary) {
   const seconds = summary.durationMs / 1000;
   const throughput =
     seconds > 0 ? `${(summary.bytesScanned / 1024 / 1024 / seconds).toFixed(2)} MB/s` : "n/a";
+  const profileSummary = summary.signatureSummary;
+  const profileId = profileSummary.profileId ?? profileSummary.manifestId ?? "custom";
+  const profileLabel = profileSummary.title
+    ? `${profileId} – ${profileSummary.title}`
+    : profileId;
   writeStdout(`${paint.bold("Scan Summary")}:\n`);
+  writeStdout(`  Profile: ${profileLabel}\n`);
+  if (profileSummary.updated) {
+    writeStdout(`  Profile updated: ${profileSummary.updated}\n`);
+  }
   writeStdout(`  Files scanned: ${summary.scannedFiles}\n`);
   writeStdout(`  Bytes read: ${(summary.bytesScanned / (1024 * 1024)).toFixed(2)} MB\n`);
   writeStdout(`  Duration: ${seconds.toFixed(2)} s\n`);
   writeStdout(`  Throughput: ${throughput}\n`);
   writeStdout(`  Detections: ${summary.detections.length}\n`);
   writeStdout(`  Errors: ${summary.errors.length}\n`);
+  if (profileSummary.sources?.length) {
+    writeStdout(`  Sources: ${profileSummary.sources.join(", ")}\n`);
+  }
 }
 
 export async function promptRemediation(detections: Detection[]) {

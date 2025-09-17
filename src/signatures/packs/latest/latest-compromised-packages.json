@@ -1,0 +1,48 @@
+{
+  "updated": "2025-09-16",
+  "sources": [
+    "https://jfrog.com/blog/shai-hulud-npm-supply-chain-attack-new-compromised-packages-detected/"
+  ],
+  "packages": [
+    {
+      "name": "@ahmedhfarag/ngx-perfect-scrollbar",
+      "version": "20.0.20"
+    },
+    {
+      "name": "@ahmedhfarag/ngx-virtual-scroller",
+      "version": "4.0.4"
+    },
+    {
+      "name": "@art-ws/common",
+      "version": "2.0.28"
+    },
+    {
+      "name": "@art-ws/config-eslint",
+      "version": "2.0.4"
+    },
+    {
+      "name": "@art-ws/config-eslint",
+      "version": "2.0.5"
+    },
+    {
+      "name": "@art-ws/config-ts",
+      "version": "2.0.7"
+    },
+    {
+      "name": "@art-ws/config-ts",
+      "version": "2.0.8"
+    },
+    {
+      "name": "@art-ws/db-context",
+      "version": "2.0.24"
+    },
+    {
+      "name": "@art-ws/di",
+      "version": "2.0.28"
+    },
+    {
+      "name": "@art-ws/di",
+      "version": "2.0.32"
+    }
+  ]
+}

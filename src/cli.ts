@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { scan } from "./scanner/index";
@@ -9,10 +10,18 @@ import { printDetections, printSummary, promptRemediation } from "./reporters/co
 import { emitJson } from "./reporters/json";
 import { cloneRepository } from "./remote";
 import { writeStdout, writeStderr, isInteractiveStdout } from "./utils/io";
+import {
+  listProfiles,
+  getDefaultProfileId,
+  getProfile,
+  type ThreatProfile,
+} from "./signatures/index";
 
 interface CliOptions {
   help?: boolean;
   version?: boolean;
+  listProfiles?: boolean;
+  profile?: string;
   defaultPaths: boolean;
   paths: string[];
   exclude: string[];
@@ -27,27 +36,60 @@ interface CliOptions {
   logLevel: LogLevel;
 }
 
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
+const BIN_NAME = "npm-supply-scan";
+const PROFILE_ENV = "NPM_SUPPLY_SCAN_PROFILE";
+const LOG_LEVEL_ENV = "NPM_SUPPLY_SCAN_LOG_LEVEL";
+const TELEMETRY_ENV = "NPM_SUPPLY_SCAN_TICK";
 
-function printHelp() {
-  const out = `Shai Hulud Scanner v${VERSION}\n\n` +
-    `Usage: shai-scan [options] [paths...]\n\n` +
+function printHelp(defaultProfile: string) {
+  const out =
+    `${BIN_NAME} v${VERSION}\n\n` +
+    `Usage: ${BIN_NAME} [profile] [options] [paths...]\n\n` +
+    `Examples:\n` +
+    `  ${BIN_NAME}                  Scan default cache roots with the \"${defaultProfile}\" profile\n` +
+    `  ${BIN_NAME} shai ./repo       Scan ./repo using the shai-hulud profile\n` +
+    `  ${BIN_NAME} --profile latest --default-paths\n` +
+    `  ${BIN_NAME} --list-profiles\n\n` +
     `Options:\n` +
-    `  --default-paths        Include standard npm/pnpm/yarn/bun caches\n` +
-    `  --path <dir>           Additional directory to scan (repeatable)\n` +
-    `  --exclude <pattern>    Substring filter to skip paths (repeatable)\n` +
-    `  --threads <n>          Override automatic worker count\n` +
-    `  --max-depth <n>        Limit directory traversal depth\n` +
-    `  --clone-url <url>      Clone and scan remote Git repository\n` +
-    `  --clone-branch <ref>   Checkout specific ref for remote scan\n` +
-    `  --keep-temp            Keep cloned repository directory\n` +
-    `  --signature-file <p>   Load custom IOC signature file\n` +
-    `  --json                 Emit JSON report instead of console summary\n` +
-    `  --no-metrics           Disable live telemetry output\n` +
-    `  --log-level <level>    Log level (silent|info|debug|trace)\n` +
-    `  --version              Show version\n` +
-    `  --help                 Show this help message\n`;
+    `  --profile <id>          Pick a threat profile (see --list-profiles)\n` +
+    `  --list-profiles         Show bundled threat profiles and exit\n` +
+    `  --default-paths         Include standard npm/pnpm/yarn/bun caches\n` +
+    `  --path <dir>            Additional directory to scan (repeatable)\n` +
+    `  --exclude <pattern>     Substring filter to skip paths (repeatable)\n` +
+    `  --threads <n>           Override automatic worker count\n` +
+    `  --max-depth <n>         Limit directory traversal depth\n` +
+    `  --clone-url <url>       Clone and scan remote Git repository\n` +
+    `  --clone-branch <ref>    Checkout specific ref for remote scan\n` +
+    `  --keep-temp             Keep cloned repository directory\n` +
+    `  --signature-file <p>    Load custom IOC signature manifest\n` +
+    `  --json                  Emit JSON report instead of console summary\n` +
+    `  --no-metrics            Disable live telemetry output\n` +
+    `  --log-level <level>     Log level (silent|info|debug|trace)\n` +
+    `  --version               Show version\n` +
+    `  --help                  Show this help message\n`;
   writeStdout(out);
+}
+
+function printProfiles(profiles: ThreatProfile[], defaultProfile: string) {
+  writeStdout("Available threat profiles:\n");
+  profiles.forEach((profile) => {
+    const aliases = profile.aliases?.length ? `aliases: ${profile.aliases.join(", ")}` : "";
+    const tags = profile.tags?.length ? ` [${profile.tags.join(", ")}]` : "";
+    const isDefault = profile.id === defaultProfile ? " (default)" : "";
+    writeStdout(`  - ${profile.id}${isDefault}${tags}\n`);
+    writeStdout(`      ${profile.title}\n`);
+    if (profile.summary) {
+      writeStdout(`      ${profile.summary}\n`);
+    }
+    const meta: string[] = [];
+    if (profile.updated) meta.push(`updated ${profile.updated}`);
+    if (aliases) meta.push(aliases);
+    if (meta.length) {
+      writeStdout(`      ${meta.join(" · ")}\n`);
+    }
+  });
+  writeStdout("\nUse --profile <id> to select a profile.\n");
 }
 
 function requireValue(argv: string[], index: number, flag: string): string {
@@ -63,7 +105,7 @@ function parseArgs(argv: string[]): CliOptions {
     defaultPaths: false,
     paths: [],
     exclude: [],
-    logLevel: (process.env.SHAI_SCAN_LOG_LEVEL as LogLevel) || "info",
+    logLevel: (process.env[LOG_LEVEL_ENV] as LogLevel) || "info",
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -74,6 +116,13 @@ function parseArgs(argv: string[]): CliOptions {
         break;
       case "--version":
         options.version = true;
+        break;
+      case "--profile":
+      case "--threat":
+        options.profile = requireValue(argv, ++i, arg);
+        break;
+      case "--list-profiles":
+        options.listProfiles = true;
         break;
       case "--default-paths":
         options.defaultPaths = true;
@@ -111,6 +160,12 @@ function parseArgs(argv: string[]): CliOptions {
       case "--log-level":
         options.logLevel = requireValue(argv, ++i, "--log-level") as LogLevel;
         break;
+      case "--":
+        for (let j = i + 1; j < argv.length; j += 1) {
+          options.paths.push(argv[j]);
+        }
+        i = argv.length;
+        break;
       default:
         if (arg.startsWith("-")) {
           throw new Error(`Unknown option: ${arg}`);
@@ -129,24 +184,75 @@ function parseArgs(argv: string[]): CliOptions {
   return options;
 }
 
+function buildProfileIndex(profiles: ThreatProfile[]): Map<string, string> {
+  const index = new Map<string, string>();
+  profiles.forEach((profile) => {
+    index.set(profile.id.toLowerCase(), profile.id);
+    profile.aliases?.forEach((alias) => index.set(alias.toLowerCase(), profile.id));
+  });
+  return index;
+}
+
+function resolveProfileId(
+  input: string | undefined,
+  index: Map<string, string>
+): string | undefined {
+  if (!input) return undefined;
+  const normalized = input.trim().toLowerCase();
+  const match = index.get(normalized);
+  if (!match) {
+    const available = Array.from(new Set(index.values())).join(", ");
+    throw new Error(
+      `Unknown threat profile "${input}". Run ${BIN_NAME} --list-profiles to see available IDs (${available}).`
+    );
+  }
+  return match;
+}
+
 async function main() {
   try {
     const argv = Bun.argv.slice(2);
     const options = parseArgs(argv);
+    const profiles = listProfiles();
+    const defaultProfileId = getDefaultProfileId();
+    const profileIndex = buildProfileIndex(profiles);
 
     if (options.help) {
-      printHelp();
+      printHelp(defaultProfileId);
       return;
     }
     if (options.version) {
       writeStdout(`${VERSION}\n`);
       return;
     }
+    if (options.listProfiles) {
+      printProfiles(profiles, defaultProfileId);
+      return;
+    }
+
+    let profileId = resolveProfileId(options.profile, profileIndex);
+    if (!profileId) {
+      profileId = resolveProfileId(process.env[PROFILE_ENV], profileIndex) ?? defaultProfileId;
+    }
+
+    if (!options.signatureFile && !options.profile && options.paths.length) {
+      const candidate = options.paths[0];
+      const match = profileIndex.get(candidate.toLowerCase());
+      if (match) {
+        const exists = fs.existsSync(candidate) || fs.existsSync(path.resolve(candidate));
+        if (!exists) {
+          profileId = match;
+          options.paths.shift();
+        }
+      }
+    }
+
+    const resolvedProfile = profileId ? getProfile(profileId) : undefined;
 
     const logger = new Logger({ level: options.logLevel });
     const metrics = new Metrics();
 
-    const telemetryIntervalMs = Number.parseInt(process.env.SHAI_SCAN_TICK ?? "750", 10);
+    const telemetryIntervalMs = Number.parseInt(process.env[TELEMETRY_ENV] ?? "750", 10);
     let telemetryTimer: ReturnType<typeof setInterval> | null = null;
     if (!options.noMetrics && isInteractiveStdout()) {
       telemetryTimer = setInterval(() => {
@@ -174,9 +280,16 @@ async function main() {
     }
 
     metrics.markStart();
+    const cpuCount = os.cpus().length;
+    const profileLabel = options.signatureFile
+      ? `custom manifest ${path.relative(process.cwd(), options.signatureFile)}`
+      : resolvedProfile
+      ? `${resolvedProfile.id} – ${resolvedProfile.title}`
+      : profileId ?? "(unknown profile)";
     logger.info(
-      `Scanning with ${os.cpus().length} logical cores, ${scanPaths.size} path(s).`
+      `Scanning with ${cpuCount} logical cores across ${scanPaths.size} path(s) using profile ${profileLabel}.`
     );
+
     const summary = await scan({
       paths: Array.from(scanPaths),
       defaultPaths: options.defaultPaths,
@@ -184,6 +297,7 @@ async function main() {
       exclude: options.exclude,
       threads: options.threads,
       signatureFile: options.signatureFile,
+      profileId,
       logger,
       metrics,
     });
@@ -202,7 +316,7 @@ async function main() {
       emitJson(summary);
     } else {
       if (!summary.detections.length) {
-        writeStdout(`\n${paint.success("No shai hulud indicators detected.")}\n`);
+        writeStdout(`\n${paint.success("No supply-chain indicators detected.")}\n`);
       }
       printSummary(summary);
       if (summary.errors.length) {

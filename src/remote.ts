@@ -18,7 +18,7 @@ export interface CloneResult {
 const textDecoder = new TextDecoder();
 
 export async function cloneRepository(options: CloneOptions): Promise<CloneResult> {
-  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "shai-scan-"));
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "npm-supply-scan-"));
   options.logger.info(`Cloning ${options.url} to ${tmpDir}`);
 
   const clone = Bun.spawnSync(["git", "clone", options.url, tmpDir, "--depth", "1"], {

@@ -2,7 +2,7 @@ import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { loadSignatures } from "../signatures/index";
-import type { LoadedSignature } from "../signatures/index";
+import type { LoadedSignature, SignaturePackSummary } from "../signatures/index";
 import { Metrics } from "../telemetry";
 import { Logger } from "../utils/logger";
 
@@ -15,6 +15,7 @@ interface ScanOptions {
   exclude?: string[];
   threads?: number;
   signatureFile?: string;
+  profileId?: string;
   maxBytes?: number;
   logger: Logger;
   metrics: Metrics;
@@ -36,6 +37,7 @@ export interface ScanSummary {
   scannedFiles: number;
   bytesScanned: number;
   durationMs: number;
+  signatureSummary: SignaturePackSummary;
 }
 
 interface WorkerJob {
@@ -199,9 +201,12 @@ async function* walkPaths(paths: string[], options: { maxDepth?: number; exclude
 
 export async function scan(options: ScanOptions): Promise<ScanSummary> {
   const start = performance.now();
-  const signaturePack = await loadSignatures(options.signatureFile);
+  const signaturePack = await loadSignatures({
+    signatureFile: options.signatureFile,
+    profileId: options.profileId,
+  });
   const signatures = signaturePack.signatures;
-  const signatureSource = signaturePack.sourcePath;
+  const signatureSources = new Set(signaturePack.sourcePaths.map((p) => path.resolve(p)));
   const threads =
     options.threads && options.threads > 0
       ? options.threads
@@ -223,7 +228,7 @@ export async function scan(options: ScanOptions): Promise<ScanSummary> {
       options.metrics.addError();
       continue;
     }
-    if (entry.path === signatureSource) {
+    if (signatureSources.has(path.resolve(entry.path))) {
       continue;
     }
 
@@ -295,5 +300,6 @@ export async function scan(options: ScanOptions): Promise<ScanSummary> {
     scannedFiles: options.metrics.state.filesScanned,
     bytesScanned: options.metrics.state.bytesScanned,
     durationMs,
+    signatureSummary: signaturePack.summary,
   };
 }

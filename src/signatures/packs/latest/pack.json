@@ -1,0 +1,72 @@
+{
+  "id": "latest",
+  "title": "Latest npm supply-chain threats (rolling)",
+  "summary": "Aggregated, high-signal indicators for npm supply-chain incidents disclosed in the last 12 months.",
+  "version": 1,
+  "updated": "2025-09-16",
+  "sources": [
+    "https://jfrog.com/blog/",
+    "https://securitylab.github.com/research/",
+    "https://blog.npmjs.org/",
+    "https://checkmarx.com/blog/"
+  ],
+  "extends": ["shai-hulud"],
+  "compromisedPackagesFile": "./latest-compromised-packages.json",
+  "compromisedPackagesSignature": {
+    "id": "latest:compromised-packages",
+    "title": "Known compromised npm packages (rolling)",
+    "severity": "critical",
+    "description": "Detects lockfiles that pin versions reported as compromised within the last 12 months.",
+    "globs": [
+      "**/package-lock.json",
+      "**/npm-shrinkwrap.json",
+      "**/pnpm-lock.yaml",
+      "**/pnpm-lock.yml",
+      "**/yarn.lock",
+      "**/bun.lock",
+      "**/bun.lockb"
+    ]
+  },
+  "signatures": [
+    {
+      "id": "latest:telegram-exfil",
+      "title": "Telegram bot token exfiltration",
+      "severity": "high",
+      "description": "Detects scripts that stage environment variables to Telegram bots via Bot API calls.",
+      "indicators": [
+        {
+          "type": "regex",
+          "value": "https://api\\.telegram\\.org/bot[0-9]+:[A-Za-z0-9_-]+/send(Document|Message)"
+        }
+      ]
+    },
+    {
+      "id": "latest:discord-webhook-exfil",
+      "title": "Credential exfiltration to Discord webhooks",
+      "severity": "high",
+      "description": "Flags hard-coded Discord webhook endpoints often abused by npm stealers.",
+      "indicators": [
+        {
+          "type": "regex",
+          "value": "https://discord(app)?\\.com/api/webhooks/[0-9]+/[A-Za-z0-9_-]+"
+        }
+      ]
+    },
+    {
+      "id": "latest:obfuscated-powershell",
+      "title": "Obfuscated PowerShell runner",
+      "severity": "medium",
+      "description": "Matches scripts spawning PowerShell with base64 encoded payloads (common in npm backdoors).",
+      "indicators": [
+        {
+          "type": "regex",
+          "value": "powershell\\s+-[eEwW]"
+        },
+        {
+          "type": "regex",
+          "value": "fromCharCode\\(0x[0-9a-fA-F]{2}"
+        }
+      ]
+    }
+  ]
+}

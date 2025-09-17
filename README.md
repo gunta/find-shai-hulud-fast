@@ -1,125 +1,131 @@
-# Shai Hulud Scanner
+# npm-supply-scan
 
-Fast, parallel Bun-powered scanner for detecting the "shai hulud" npm supply-chain malware across local file systems and remote Git repositories.
+Ultra-fast Bun-powered scanner for npm supply-chain threats. The CLI ships with curated threat profiles, including a rolling "latest" bundle and the original shai hulud fast scanner profile as a worked example.
 
-> ⚠️ **Security note:** This project focuses on detection. Always review findings before taking action and follow your organization's incident-response procedures.
+> ⚠️ **Security note:** Review detections before taking action and follow your organisation's incident-response process.
 
-## Features
-- 🚄 Ultra-fast multi-core scanning optimized with Bun workers
-- 🔍 Detects known shai hulud IOCs in local directories, npm/pnpm/yarn/bun caches, and cloned repos
-- 🌐 Remote GitHub repository scanning (auto-clone, inspect, clean up)
-- 📊 Live telemetry: files/sec, MB/sec, CPU usage, worker activity
-- 🎨 Color-rich terminal UX plus optional JSON reporting
-- 📦 Distributable as Bun-compiled binary, npm CLI, and Homebrew formula
-
-## Installation
-The tool can be consumed in multiple ways. Pick the option that fits your workflow.
-
-### 1. Bun Binary
-```bash
-bun install
-bun build ./src/cli.ts --compile --outfile=bin/shai-scan
-./bin/shai-scan --help
-```
-A release pipeline will publish prebuilt binaries per platform (macOS/Linux, `x64` & `arm64`).
-
-### 2. npm Package (planned)
-```bash
-npm install -g @sandtrout/shai-hulud-scanner
-shai-scan --help
-```
-The npm package bundles the Bun binary (or downloads the correct build during postinstall).
-
-### 3. Homebrew Tap (planned)
-```bash
-brew tap sandtrout/homebrew-tap
-brew install shai-scan
-```
-Formula will reference GitHub releases and verify checksums.
+## Highlights
+- 🚄 Parallel filesystem walker with Bun workers for multi-GB/minute throughput
+- 🧩 Pluggable threat profiles (`latest`, `shai-hulud`, custom JSON manifests)
+- 🗃️ Built-in registry of compromised package versions and file-level IOCs
+- 🌐 Remote repository scanning (clone → scan → optionally cleanup)
+- 📊 Live telemetry (files/sec, MB/sec, CPU, worker queue depth)
+- 📟 Console reporter plus structured JSON output for CI pipelines
 
 ## Quick Start
-Scan your home directory and common package-manager caches:
 ```bash
-shai-scan --default-paths
-```
-Scan specific paths concurrently:
-```bash
-shai-scan --path ~/projects --path ~/.npm --path ~/.bun/install/cache
-```
-Scan a remote GitHub repo without keeping the clone:
-```bash
-shai-scan --clone-url https://github.com/example/project.git
-```
-Generate a JSON report for CI consumption:
-```bash
-shai-scan . --json > report.json
+# Install dependencies and build a standalone binary
+bun install
+bun build ./src/cli.ts --compile --outfile=bin/npm-supply-scan
+
+# Scan default npm/pnpm/yarn/bun caches with the rolling profile
+bin/npm-supply-scan --default-paths
+
+# Run the shai hulud profile against a specific project directory
+bin/npm-supply-scan shai ./demo/project
+
+# List the bundled profiles and metadata
+bin/npm-supply-scan --list-profiles
+
+# Emit JSON for CI aggregation
+bin/npm-supply-scan latest ./monorepo --json > report.json
 ```
 
-## CLI Reference (draft)
+## Installation Options
+- **Bun binary (local build)** – `bun build src/cli.ts --compile --outfile bin/npm-supply-scan`
+- **npm package (planned)** – publishes the compiled binary with a thin wrapper
+- **Homebrew tap (planned)** – Homebrew formula pinned to GitHub releases
+
+## Threat Profiles
+Profiles live under `src/signatures/packs/` and are enumerated in `src/signatures/registry.ts`.
+
+- `latest` (default): Rolling bundle that extends other packs and aggregates high-signal IOCs from the last 12 months. Metadata lives in `packs/latest/threats.json` and its compromised packages list lives in `packs/latest/latest-compromised-packages.json`.
+- `shai-hulud`: Full fast scanner profile for the September 2025 shai hulud attack. Pack manifest and package list live in `packs/shai-hulud/`.
+
+Each pack manifest:
+- Can extend other packs using `extends`
+- Can reference a `compromisedPackagesFile` (lockfile indicators auto-generated)
+- Defines `signatures` with `glob`, `regex`, `string`, `sha256`, and `package` indicators
+
+Use `--profile <id>` or prefix the profile (`npm-supply-scan shai ./path`) to switch. Custom manifests can be loaded via `--signature-file <path>`.
+
+## CLI Reference
 ```
-Usage: shai-scan [options] [paths...]
+Usage: npm-supply-scan [profile] [options] [paths...]
 
 Options:
-  --default-paths        Include standard npm/pnpm/yarn/bun caches
-  --path <dir>           Additional directory to scan (repeatable)
-  --exclude <pattern>    Glob pattern to exclude (repeatable)
-  --threads <n>          Override automatic worker count
-  --max-depth <n>        Limit directory traversal depth
-  --clone-url <url>      Clone and scan remote Git repo
-  --clone-branch <ref>   Checkout specific branch/tag for remote scans
-  --keep-temp            Keep cloned repository for later review
-  --json                 Emit JSON report to stdout
-  --signature-file <p>   Load custom IOC signature file (JSON)
-  --no-metrics           Disable live telemetry output
-  --log-level <level>    Set log verbosity (silent, info, debug, trace)
-  --help                 Show help
-  --version              Show version
+  --profile <id>          Pick a threat profile (see --list-profiles)
+  --list-profiles         Show bundled threat profiles and exit
+  --default-paths         Include standard npm/pnpm/yarn/bun caches
+  --path <dir>            Additional directory to scan (repeatable)
+  --exclude <pattern>     Substring filter to skip paths (repeatable)
+  --threads <n>           Override automatic worker count
+  --max-depth <n>         Limit directory traversal depth
+  --clone-url <url>       Clone and scan remote Git repository
+  --clone-branch <ref>    Checkout specific ref for remote scan
+  --keep-temp             Keep cloned repository directory
+  --signature-file <p>    Load custom IOC signature manifest
+  --json                  Emit JSON report instead of console summary
+  --no-metrics            Disable live telemetry output
+  --log-level <level>     Log level (silent|info|debug|trace)
+  --help                  Show this help message
+  --version               Show version
+```
+> Tip: the first positional argument will be treated as a profile if it matches a known profile name/alias and no path of that name exists. Prefix paths with `./` to disambiguate.
+
+### JSON Output Shape
+```
+{
+  "scannedFiles": 12345,
+  "bytesScanned": 987654321,
+  "durationMs": 5123,
+  "detections": [...],
+  "errors": [...],
+  "signatureSummary": {
+    "profileId": "latest",
+    "title": "Latest npm supply-chain threats (rolling)",
+    "updated": "2025-09-16",
+    "sources": ["https://jfrog.com/blog/..."],
+    "resolvedProfiles": ["latest", "shai-hulud"]
+  },
+  "generatedAt": "2025-09-16T12:34:56.789Z"
+}
 ```
 
-## Detection Strategy
-- Signature-based matching of known filenames, hashes, code snippets, and network indicators tied to the shai hulud campaign
-- Heuristics to flag suspicious postinstall scripts, credential harvesting patterns, and obfuscated payloads
-- Extensible signature packs defined as JSON descriptors (hashes, globs, regex, string matches)
-
-## Performance Notes
-- Uses Bun's worker threads and async filesystem primitives to maximize throughput
-- Adaptive scheduler monitors queue depth and CPU saturation, adjusting worker counts automatically
-- Telemetry loop samples metrics every 500ms with minimal overhead
-
-## Architecture Overview
-- `src/cli.ts`: argument parsing, logging configuration, telemetry orchestrator
-- `src/scanner/`: worker pool, directory walker, signature engine, remote repo module
-- `src/signatures/`: IOC catalog plus loader for custom packs
-- `src/reporters/`: terminal renderer, JSON emitter, interactive remediation prompts
-- `src/utils/`: CPU/memory sampling, rate limiting, path resolution helpers
+## Telemetry & Performance
+- Worker count defaults to `min(max(2, cores-1), 32)`; override via `--threads`
+- Environment knobs:
+  - `NPM_SUPPLY_SCAN_PROFILE` – default profile ID/alias
+  - `NPM_SUPPLY_SCAN_LOG_LEVEL` – default log verbosity
+  - `NPM_SUPPLY_SCAN_TICK` – telemetry refresh interval (ms)
+- Telemetry renders files/sec, MB/sec, CPU %, queue depth, busy workers, and error count in-place
 
 ## Development
 ```bash
 bun install
+bun run dev -- --profile latest --default-paths
 bun test
-bun run lint
-bun run dev -- --path .
+bunx eslint .
 ```
-Planned scripts:
-- `test`: unit and integration tests (signature engine, walker, remote clone mock)
-- `lint`: ESLint + TypeScript checks (using bunx)
-- `dev`: run CLI with live reload for local debugging
 
-### Updating Signatures
-Edit `signatures/shai-hulud.json` with new indicators. Keep entries annotated with source and timestamp. Consider verifying hashes with multiple threat intel feeds before merging.
+### Updating or Adding Profiles
+1. Create a new directory under `src/signatures/packs/<profile-id>/`.
+2. Add a `pack.json` manifest describing signatures and metadata.
+3. Optional: add supporting JSON (e.g., `compromised-packages.json`, `threats.json`).
+4. Register the profile in `src/signatures/registry.ts` (with aliases, summary, etc.).
+5. Run the scanner against representative fixtures before publishing.
 
 ## Roadmap
-- [ ] Core filesystem scanning with signatures & heuristics
-- [ ] Remote Git clone module with cleanup
-- [ ] Live telemetry and stats renderer
-- [ ] JSON report output
-- [ ] Package distribution pipeline (Bun compile, npm publish, Homebrew formula)
-- [ ] Integration tests and CI templates
+- [ ] Additional bundled profiles (crypto stealers, typosquats, CI backdoors)
+- [ ] Subscription/update channel for profile manifests
+- [ ] CI templates for GitHub Actions and GitLab CI
+- [ ] Signed release artifacts and npm distribution
+- [ ] Integration tests covering remote clone flow and heuristics
 
-## Security & Responsible Use
-- Run in read-only mode where possible; the scanner never modifies target files.
-- Review detections and engage security teams before deleting packages.
-- Verify signed release artifacts when downloading binaries.
+## Responsible Use
+- Run in read-only contexts; the scanner never modifies target files
+- Validate detections with your security team prior to remediation
+- Verify release artifacts/signatures before deploying widely
 
 ## License
-TBD (recommendation: Apache-2.0 or MIT).
+TBD (recommended: Apache-2.0 or MIT)
