@@ -1,4 +1,5 @@
-import type { LoadedSignature } from "../signatures/index";
+import { semver } from "bun";
+import type { LoadedSignature, SignatureThreat } from "../signatures/index";
 import { matchGlob } from "../utils/glob";
 import { sha256File } from "../utils/hash";
 
@@ -18,6 +19,12 @@ interface ShutdownMessage {
   type: "shutdown";
 }
 
+interface PackageVersionEntry {
+  spec: string;
+  isExact: boolean;
+  signatures: LoadedSignature[];
+}
+
 interface MatchResult {
   signatureId: string;
   title: string;
@@ -25,6 +32,7 @@ interface MatchResult {
   description: string;
   indicatorType: string;
   indicatorValue: string;
+  threats: SignatureThreat[];
 }
 
 interface ScanResultMessage {
@@ -41,7 +49,7 @@ declare const self: Worker;
 
 let signatures: LoadedSignature[] = [];
 let maxBytes = 5 * 1024 * 1024;
-let packageIndex = new Map<string, Map<string, LoadedSignature[]>>();
+let packageIndex = new Map<string, PackageVersionEntry[]>();
 let packageTokens: Array<{
   token: string;
   name: string;
@@ -65,33 +73,43 @@ function concatChunks(chunks: Uint8Array[]): Uint8Array {
   return result;
 }
 
+function isExactSemver(spec: string): boolean {
+  return /^(0|[1-9]\d*)(\.(0|[1-9]\d*)){2}(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$/.test(spec);
+}
+
 function rebuildPackageIndex(newSignatures: LoadedSignature[]) {
   packageIndex = new Map();
   for (const signature of newSignatures) {
     if (!signature.packages?.length) continue;
     for (const pkg of signature.packages) {
       const name = pkg.name;
-      const version = pkg.version;
-      if (!name || !version) continue;
-      let versionMap = packageIndex.get(name);
-      if (!versionMap) {
-        versionMap = new Map();
-        packageIndex.set(name, versionMap);
+      const spec = pkg.version?.trim();
+      if (!name || !spec) continue;
+      let entries = packageIndex.get(name);
+      if (!entries) {
+        entries = [];
+        packageIndex.set(name, entries);
       }
-      let sigs = versionMap.get(version);
-      if (!sigs) {
-        sigs = [];
-        versionMap.set(version, sigs);
+      let entry = entries.find((existing) => existing.spec === spec);
+      if (!entry) {
+        entry = { spec, isExact: isExactSemver(spec), signatures: [] };
+        entries.push(entry);
       }
-      if (!sigs.includes(signature)) {
-        sigs.push(signature);
+      if (!entry.signatures.includes(signature)) {
+        entry.signatures.push(signature);
       }
     }
   }
   packageTokens = [];
-  for (const [name, versions] of packageIndex) {
-    for (const [version, sigs] of versions) {
-      packageTokens.push({ token: `${name}@${version}`, name, version, signatures: sigs });
+  for (const [name, entries] of packageIndex) {
+    for (const entry of entries) {
+      if (!entry.isExact) continue;
+      packageTokens.push({
+        token: `${name}@${entry.spec}`,
+        name,
+        version: entry.spec,
+        signatures: entry.signatures,
+      });
     }
   }
 }
@@ -132,27 +150,37 @@ function recordPackageMatch(
   name: string,
   version: string
 ) {
-  const versionMap = packageIndex.get(name);
-  if (!versionMap) return;
-  const signaturesForVersion = versionMap.get(version);
-  if (!signaturesForVersion) return;
-  const indicatorValue = `${name}@${version}`;
-  for (const signature of signaturesForVersion) {
-    let seenValues = seen.get(signature.id);
-    if (!seenValues) {
-      seenValues = new Set();
-      seen.set(signature.id, seenValues);
+  const entries = packageIndex.get(name);
+  if (!entries) return;
+  const normalized = version.trim();
+  if (!normalized.length) return;
+  for (const entry of entries) {
+    let matchesVersion = false;
+    try {
+      matchesVersion = semver.satisfies(normalized, entry.spec);
+    } catch (error) {
+      matchesVersion = normalized === entry.spec;
     }
-    if (seenValues.has(indicatorValue)) continue;
-    seenValues.add(indicatorValue);
-    matches.push({
-      signatureId: signature.id,
-      title: signature.title,
-      severity: signature.severity,
-      description: signature.description,
-      indicatorType: "package",
-      indicatorValue,
-    });
+    if (!matchesVersion) continue;
+    const indicatorValue = `${name}@${entry.spec}`;
+    for (const signature of entry.signatures) {
+      let seenValues = seen.get(signature.id);
+      if (!seenValues) {
+        seenValues = new Set();
+        seen.set(signature.id, seenValues);
+      }
+      if (seenValues.has(indicatorValue)) continue;
+      seenValues.add(indicatorValue);
+      matches.push({
+        signatureId: signature.id,
+        title: signature.title,
+        severity: signature.severity,
+        description: signature.description,
+        indicatorType: "package",
+        indicatorValue,
+        threats: signature.threats,
+      });
+    }
   }
 }
 
@@ -311,6 +339,7 @@ async function handleScan(message: ScanMessage): Promise<ScanResultMessage> {
           description: signature.description,
           indicatorType: "glob",
           indicatorValue: matchedGlob,
+          threats: signature.threats,
         });
       }
     }
@@ -368,6 +397,7 @@ async function handleScan(message: ScanMessage): Promise<ScanResultMessage> {
               description: signature.description,
               indicatorType: "string",
               indicatorValue: indicator,
+              threats: signature.threats,
             });
             continue;
           }
@@ -383,6 +413,7 @@ async function handleScan(message: ScanMessage): Promise<ScanResultMessage> {
               description: signature.description,
               indicatorType: "regex",
               indicatorValue: indicator.source,
+              threats: signature.threats,
             });
             continue;
           }
@@ -399,6 +430,7 @@ async function handleScan(message: ScanMessage): Promise<ScanResultMessage> {
               description: signature.description,
               indicatorType: "sha256",
               indicatorValue: indicator,
+              threats: signature.threats,
             });
             continue;
           }
@@ -431,6 +463,7 @@ async function handleScan(message: ScanMessage): Promise<ScanResultMessage> {
             description: signature.description,
             indicatorType: "sha256",
             indicatorValue: hash,
+            threats: signature.threats,
           });
         }
       }

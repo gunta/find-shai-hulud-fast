@@ -11,6 +11,7 @@
     "https://checkmarx.com/blog/"
   ],
   "extends": ["shai-hulud"],
+  "threatsFile": "./threats.json",
   "compromisedPackagesFile": "./latest-compromised-packages.json",
   "compromisedPackagesSignature": {
     "id": "latest:compromised-packages",

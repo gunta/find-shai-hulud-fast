@@ -8,6 +8,7 @@ Ultra-fast Bun-powered scanner for npm supply-chain threats. The CLI ships with 
 - 🚄 Parallel filesystem walker with Bun workers for multi-GB/minute throughput
 - 🧩 Pluggable threat profiles (`latest`, `shai-hulud`, custom JSON manifests)
 - 🗃️ Built-in registry of compromised package versions and file-level IOCs
+- 🛡️ Detection output maps matches back to the referenced threat campaigns for rapid triage
 - 🌐 Remote repository scanning (clone → scan → optionally cleanup)
 - 📊 Live telemetry (files/sec, MB/sec, CPU, worker queue depth)
 - 📟 Console reporter plus structured JSON output for CI pipelines

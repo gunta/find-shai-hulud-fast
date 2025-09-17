@@ -2,7 +2,7 @@ import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { loadSignatures } from "../signatures/index";
-import type { LoadedSignature, SignaturePackSummary } from "../signatures/index";
+import type { LoadedSignature, SignaturePackSummary, SignatureThreat } from "../signatures/index";
 import { Metrics } from "../telemetry";
 import { Logger } from "../utils/logger";
 
@@ -29,6 +29,7 @@ export interface Detection {
   description: string;
   indicatorType: string;
   indicatorValue: string;
+  threats: SignatureThreat[];
 }
 
 export interface ScanSummary {
@@ -57,6 +58,7 @@ interface WorkerResult {
     description: string;
     indicatorType: string;
     indicatorValue: string;
+    threats: SignatureThreat[];
   }>;
   error?: string;
 }
@@ -253,6 +255,7 @@ export async function scan(options: ScanOptions): Promise<ScanSummary> {
                   description: match.description,
                   indicatorType: match.indicatorType,
                   indicatorValue: match.indicatorValue,
+                  threats: match.threats ?? [],
                 });
                 options.logger.trace(
                   `Match ${match.signatureId} (${match.severity}) in ${result.path} - ${match.indicatorType}: ${match.indicatorValue}`

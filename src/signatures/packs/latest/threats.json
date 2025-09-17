@@ -5,6 +5,13 @@
       "id": "shai-hulud",
       "title": "Shai hulud npm supply-chain malware",
       "summary": "Targeted compromise of popular Angular scaffolding packages distributing multi-stage payloads.",
+      "signatureIds": [
+        "shai-hulud:familiar-filename",
+        "shai-hulud:network-endpoint",
+        "shai-hulud:bundle-hash",
+        "shai-hulud:powershell-loader",
+        "shai-hulud:base64-env-exfil"
+      ],
       "sources": [
         "https://jfrog.com/blog/shai-hulud-npm-supply-chain-attack-new-compromised-packages-detected/"
       ],
@@ -14,6 +21,7 @@
       "id": "telegram-exfil-botnet",
       "title": "Telegram-based credential stealers",
       "summary": "Campaigns abusing Telegram Bot API endpoints from npm postinstall hooks to exfiltrate environment secrets.",
+      "signatureIds": ["latest:telegram-exfil"],
       "sources": [
         "https://securitylab.github.com/research/npm-malware-telegram-exfiltration/"
       ],
@@ -23,8 +31,19 @@
       "id": "discord-webhook-stealers",
       "title": "Discord webhook credential stealers",
       "summary": "Commodity stealers leveraging Discord webhooks from obfuscated npm scripts.",
+      "signatureIds": ["latest:discord-webhook-exfil"],
       "sources": [
         "https://checkmarx.com/blog/discord-webhook-stealers-npm/"
+      ],
+      "profiles": ["latest"]
+    },
+    {
+      "id": "obfuscated-powershell",
+      "title": "Obfuscated PowerShell runners",
+      "summary": "Obfuscated scripts that spawn PowerShell with encoded payloads, often used in npm backdoors.",
+      "signatureIds": ["latest:obfuscated-powershell"],
+      "sources": [
+        "https://checkmarx.com/blog/malicious-npm-packages-powershell/"
       ],
       "profiles": ["latest"]
     }

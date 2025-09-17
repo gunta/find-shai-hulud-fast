@@ -30,6 +30,21 @@ export function printDetections(detections: Detection[]) {
     writeStdout(
       `  ${paint.dim("Indicator")}: ${detection.indicatorType} → ${detection.indicatorValue}\n`
     );
+    if (detection.threats.length) {
+      const threatLines = detection.threats.map((threat) => {
+        const suffix = threat.summary ? ` – ${threat.summary}` : "";
+        return `  ${paint.dim("Threat")}: ${threat.title} [${threat.id}]${suffix}`;
+      });
+      threatLines.forEach((line) => writeStdout(`${line}\n`));
+      if (detection.threats.some((threat) => threat.sources?.length)) {
+        const sources = detection.threats
+          .flatMap((threat) => threat.sources ?? [])
+          .filter(Boolean);
+        if (sources.length) {
+          writeStdout(`  ${paint.dim("Sources")}: ${Array.from(new Set(sources)).join(", ")}\n`);
+        }
+      }
+    }
     writeStdout(`  ${paint.dim("Details")}: ${detection.description}\n\n`);
   });
 }

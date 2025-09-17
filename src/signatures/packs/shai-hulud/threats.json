@@ -1,0 +1,22 @@
+{
+  "updated": "2025-09-16",
+  "threats": [
+    {
+      "id": "shai-hulud",
+      "title": "Shai hulud npm supply-chain malware",
+      "summary": "Targeted compromise of Angular ecosystem packages that delivered credential-stealing payloads via obfuscated postinstall scripts.",
+      "signatureIds": [
+        "shai-hulud:familiar-filename",
+        "shai-hulud:network-endpoint",
+        "shai-hulud:bundle-hash",
+        "shai-hulud:powershell-loader",
+        "shai-hulud:base64-env-exfil"
+      ],
+      "sources": [
+        "https://jfrog.com/blog/shai-hulud-npm-supply-chain-attack-new-compromised-packages-detected/"
+      ],
+      "profiles": ["shai-hulud", "latest"],
+      "tags": ["credential-theft", "postinstall"]
+    }
+  ]
+}

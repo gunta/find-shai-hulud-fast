@@ -8,6 +8,7 @@ Deliver a fast, scriptable npm supply-chain scanner with pluggable threat profil
 - `shai-hulud` – full example profile replicating the September 2025 JFrog disclosures
 
 Profiles live under `src/signatures/packs/<id>/` and are registered via `src/signatures/registry.ts`.
+- `threats.json` files map signatures back to higher-level attack narratives; keep them in sync when adding new indicators.
 
 ## Key Components
 - `src/cli.ts`: argument parsing, profile selection, telemetry orchestration
@@ -19,9 +20,10 @@ Profiles live under `src/signatures/packs/<id>/` and are registered via `src/sig
 ## Workflow Tips
 1. **Profile updates**: add/change manifests in `src/signatures/packs/`, update registry metadata, and refresh documentation if user-facing.
 2. **Signature changes**: prefer lower-case literals for case-insensitive string matches; remember to extend compromised package lists when adding `package` indicators.
-3. **CLI options**: keep `parseArgs` pure; mutations (e.g., resolving profile aliases) happen in `main()`.
-4. **Testing**: run `bun test` (once tests are added) and spot-check `bun run src/cli.ts --list-profiles` before shipping profile edits.
-5. **Telemetry**: ensure long-running loops call `clearTelemetryLine()` before emitting multi-line output.
+3. **Compromised package matching**: versions are canonicalised with [Bun’s semver](https://bun.com/docs/api/semver) helpers—no extra deps needed. Prefer grouping duplicates via a `versions` array (or, when clearer, a compact semver expression like `1.2.3 || 1.2.5`).
+4. **CLI options**: keep `parseArgs` pure; mutations (e.g., resolving profile aliases) happen in `main()`.
+5. **Testing**: run `bun test` (once tests are added) and spot-check `bun run src/cli.ts --list-profiles` before shipping profile edits.
+6. **Telemetry**: ensure long-running loops call `clearTelemetryLine()` before emitting multi-line output.
 
 ## Coding Conventions
 - TypeScript, ES modules, Bun runtime

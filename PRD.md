@@ -62,6 +62,7 @@ Journeys:
 
 ### 5.5 Reporting & UX
 - Console reporter with severity colouring, detection table, profile metadata summary.
+- Per-detection context includes mapped threat campaigns/sources to reduce false positives during triage.
 - JSON reporter includes full detection payload, error list, and profile summary for downstream systems.
 - Interactive remediation prompt with checklist when detections occur (TTY only).
 
@@ -119,4 +120,3 @@ Journeys:
 - GitHub Security Lab advisories on npm credential stealers (Telegram/Discord campaigns).
 - Checkmarx blog coverage of typosquat families targeting Roblox/crypto ecosystems.
 - npm Security advisories feed for compromised package disclosures.
-
