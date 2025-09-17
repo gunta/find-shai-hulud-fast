@@ -71,7 +71,7 @@ Options:
   --json                 Emit JSON report to stdout
   --signature-file <p>   Load custom IOC signature file (JSON)
   --no-metrics           Disable live telemetry output
-  --log-level <level>    Set log verbosity (silent, info, debug)
+  --log-level <level>    Set log verbosity (silent, info, debug, trace)
   --help                 Show help
   --version              Show version
 ```
@@ -123,4 +123,3 @@ Edit `signatures/shai-hulud.json` with new indicators. Keep entries annotated wi
 
 ## License
 TBD (recommendation: Apache-2.0 or MIT).
-

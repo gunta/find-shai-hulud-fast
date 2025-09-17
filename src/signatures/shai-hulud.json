@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2024-09-18",
+  "updated": "2025-09-16",
   "signatures": [
     {
       "id": "shai-hulud:familiar-filename",
@@ -8,8 +8,10 @@
       "severity": "critical",
       "description": "Detected known malicious loader filename associated with the shai hulud campaign.",
       "indicators": [
-        { "type": "glob", "pattern": "**/shai-hulud*.js" },
-        { "type": "glob", "pattern": "**/postinstall.js" }
+        {
+          "type": "glob",
+          "pattern": "**/shai-hulud*.js"
+        }
       ]
     },
     {
@@ -18,8 +20,34 @@
       "severity": "critical",
       "description": "File references known shai hulud command-and-control endpoint.",
       "indicators": [
-        { "type": "string", "value": "https://shai-hulud.xyz" },
-        { "type": "string", "value": "shai-hulud.xyz" }
+        {
+          "type": "string",
+          "value": "https://shai-hulud.xyz"
+        },
+        {
+          "type": "string",
+          "value": "shai-hulud.xyz"
+        }
+      ]
+    },
+    {
+      "id": "shai-hulud:bundle-hash",
+      "title": "Known malicious bundle.js payload",
+      "severity": "critical",
+      "description": "SHA-256 hash match for the bundle.js payload distributed in the shai hulud supply-chain attack.",
+      "indicators": [
+        {
+          "type": "glob",
+          "pattern": "**/node_modules/**/bundle.js"
+        },
+        {
+          "type": "glob",
+          "pattern": "**/bundle.js"
+        },
+        {
+          "type": "sha256",
+          "value": "46faab8ab153fae6e80e7cca38eab363075bb524edd79e42269217a083628f09"
+        }
       ]
     },
     {
@@ -28,8 +56,14 @@
       "severity": "high",
       "description": "Likely credential stealer using PowerShell encoded payload.",
       "indicators": [
-        { "type": "regex", "value": "powershell\\\\.exe\\s+-[eE]" },
-        { "type": "regex", "value": "Invoke-WebRequest.+shai" }
+        {
+          "type": "regex",
+          "value": "powershell\\\\.exe\\s+-[eE]"
+        },
+        {
+          "type": "regex",
+          "value": "Invoke-WebRequest.+shai"
+        }
       ]
     },
     {
@@ -38,17 +72,14 @@
       "severity": "high",
       "description": "Matches scripts that base64 encode env vars for exfiltration.",
       "indicators": [
-        { "type": "regex", "value": "Buffer\\\\.from\\(process\\.env" },
-        { "type": "regex", "value": "btoa\\(JSON\\.stringify\\(process\\.env" }
-      ]
-    },
-    {
-      "id": "shai-hulud:obfuscated-loader",
-      "title": "Obfuscated loader heuristics",
-      "severity": "medium",
-      "description": "Flags extremely long single-line scripts often used in shai hulud droppers.",
-      "indicators": [
-        { "type": "heuristic", "value": "long-line" }
+        {
+          "type": "regex",
+          "value": "Buffer\\\\.from\\(process\\.env"
+        },
+        {
+          "type": "regex",
+          "value": "btoa\\(JSON\\.stringify\\(process\\.env"
+        }
       ]
     }
   ]

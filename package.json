@@ -13,11 +13,11 @@
     "shai-scan": "bin/shai-scan"
   },
   "devDependencies": {
-    "@types/node": "20.11.5",
-    "typescript": "5.3.3",
-    "eslint": "8.56.0"
+    "@types/bun": "^1.2.22",
+    "@types/node": "24.5.1",
+    "typescript": "5.9.2",
+    "eslint": "9.35.0"
   },
   "dependencies": {
-    "@types/bun": "^1.2.22"
   }
 }

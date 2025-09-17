@@ -40,7 +40,7 @@ export function ansiColor(code: string | undefined, opts?: { bold?: boolean; dim
 }
 
 export function hexPainter(hex: string, opts?: { bold?: boolean; dim?: boolean }) {
-  const code = Bun.color(hex, "ansi_16m");
+  const code = Bun.color(hex, "ansi-16m") ?? hex;
   return ansiColor(code, opts);
 }
 

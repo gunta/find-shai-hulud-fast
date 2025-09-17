@@ -44,7 +44,7 @@ function printHelp() {
     `  --signature-file <p>   Load custom IOC signature file\n` +
     `  --json                 Emit JSON report instead of console summary\n` +
     `  --no-metrics           Disable live telemetry output\n` +
-    `  --log-level <level>    Log level (silent|info|debug)\n` +
+    `  --log-level <level>    Log level (silent|info|debug|trace)\n` +
     `  --version              Show version\n` +
     `  --help                 Show this help message\n`;
   writeStdout(out);
@@ -211,7 +211,7 @@ async function main() {
         });
         if (summary.errors.length > 5) {
           logger.warn(
-            `Additional ${summary.errors.length - 5} errors suppressed; rerun with --log-level debug for details.`
+            `Additional ${summary.errors.length - 5} errors suppressed; rerun with --log-level trace for details.`
           );
         }
       }

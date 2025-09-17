@@ -5,7 +5,7 @@ const paintInfo = hexPainter("#38bdf8", { bold: true });
 const paintSuccess = hexPainter("#22c55e", { bold: true });
 const paintWarn = hexPainter("#facc15", { bold: true });
 const paintError = hexPainter("#ef4444", { bold: true });
-const paintDim = ansiColor(Bun.color("#94a3b8", "ansi_16m"), { dim: true });
+const paintDim = ansiColor(Bun.color("#94a3b8", "ansi-16m") ?? "#94a3b8", { dim: true });
 
 export const paint = {
   bold: ansiColor("", { bold: true }),
@@ -17,7 +17,7 @@ export const paint = {
   headline: paintPrimary,
 };
 
-export type LogLevel = "silent" | "info" | "debug";
+export type LogLevel = "silent" | "info" | "debug" | "trace";
 
 export interface LoggerOptions {
   level: LogLevel;
@@ -27,6 +27,7 @@ const infoIcon = paintInfo("ℹ");
 const warnIcon = paintWarn("⚠");
 const errorIcon = paintError("✖");
 const debugIcon = paintDim("∙");
+const traceIcon = paintDim("…");
 
 export class Logger {
   private level: LogLevel;
@@ -57,7 +58,12 @@ export class Logger {
   }
 
   debug(message: string) {
-    if (this.level !== "debug") return;
+    if (this.level !== "debug" && this.level !== "trace") return;
     writeStdout(`${debugIcon} ${paintDim(message)}\n`);
+  }
+
+  trace(message: string) {
+    if (this.level !== "trace") return;
+    writeStdout(`${traceIcon} ${paintDim(message)}\n`);
   }
 }

@@ -219,7 +219,7 @@ export async function scan(options: ScanOptions): Promise<ScanSummary> {
     exclude: options.exclude,
   })) {
     if ("error" in entry) {
-      errors.push({ path: entry.path, error: entry.error });
+      errors.push({ path: entry.path, error: entry.error ?? "unknown error" });
       options.metrics.addError();
       continue;
     }
@@ -249,6 +249,9 @@ export async function scan(options: ScanOptions): Promise<ScanSummary> {
                   indicatorType: match.indicatorType,
                   indicatorValue: match.indicatorValue,
                 });
+                options.logger.trace(
+                  `Match ${match.signatureId} (${match.severity}) in ${result.path} - ${match.indicatorType}: ${match.indicatorValue}`
+                );
               }
             }
           }
