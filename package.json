@@ -1,0 +1,23 @@
+{
+  "name": "shai-hulud-scanner",
+  "version": "0.1.0",
+  "description": "High-performance Bun-based scanner for the shai hulud npm supply-chain malware.",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/cli.ts",
+    "build": "bun build src/cli.ts --compile --outfile bin/shai-scan",
+    "test": "bun test",
+    "lint": "bunx eslint ."
+  },
+  "bin": {
+    "shai-scan": "bin/shai-scan"
+  },
+  "devDependencies": {
+    "@types/node": "20.11.5",
+    "typescript": "5.3.3",
+    "eslint": "8.56.0"
+  },
+  "dependencies": {
+    "@types/bun": "^1.2.22"
+  }
+}

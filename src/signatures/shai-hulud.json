@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "updated": "2024-09-18",
+  "signatures": [
+    {
+      "id": "shai-hulud:familiar-filename",
+      "title": "Known shai hulud loader filename",
+      "severity": "critical",
+      "description": "Detected known malicious loader filename associated with the shai hulud campaign.",
+      "indicators": [
+        { "type": "glob", "pattern": "**/shai-hulud*.js" },
+        { "type": "glob", "pattern": "**/postinstall.js" }
+      ]
+    },
+    {
+      "id": "shai-hulud:network-endpoint",
+      "title": "Shai hulud C2 endpoint reference",
+      "severity": "critical",
+      "description": "File references known shai hulud command-and-control endpoint.",
+      "indicators": [
+        { "type": "string", "value": "https://shai-hulud.xyz" },
+        { "type": "string", "value": "shai-hulud.xyz" }
+      ]
+    },
+    {
+      "id": "shai-hulud:powershell-loader",
+      "title": "Suspicious PowerShell loader",
+      "severity": "high",
+      "description": "Likely credential stealer using PowerShell encoded payload.",
+      "indicators": [
+        { "type": "regex", "value": "powershell\\\\.exe\\s+-[eE]" },
+        { "type": "regex", "value": "Invoke-WebRequest.+shai" }
+      ]
+    },
+    {
+      "id": "shai-hulud:base64-env-exfil",
+      "title": "Base64 exfil of environment variables",
+      "severity": "high",
+      "description": "Matches scripts that base64 encode env vars for exfiltration.",
+      "indicators": [
+        { "type": "regex", "value": "Buffer\\\\.from\\(process\\.env" },
+        { "type": "regex", "value": "btoa\\(JSON\\.stringify\\(process\\.env" }
+      ]
+    },
+    {
+      "id": "shai-hulud:obfuscated-loader",
+      "title": "Obfuscated loader heuristics",
+      "severity": "medium",
+      "description": "Flags extremely long single-line scripts often used in shai hulud droppers.",
+      "indicators": [
+        { "type": "heuristic", "value": "long-line" }
+      ]
+    }
+  ]
+}

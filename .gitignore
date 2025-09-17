@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.bun/
+bun.lockb
+
+# Build artifacts
+bin/
+dist/
+build/
+out/
+tmp/
+temp/
+
+# Coverage
+coverage/
+.nyc_output/
+*.lcov
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+
+# TypeScript
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.*.local
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+.eslintcache
+*.cache
